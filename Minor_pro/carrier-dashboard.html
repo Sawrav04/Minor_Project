@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carrier Dashboard - Logistics System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dashboard-body">
+    <div id="loading" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p>Loading...</p>
+    </div>
+
+    <div id="dashboard-content" class="dashboard-wrapper" style="display: none;">
+        <!-- Sidebar -->
+        <aside class="dashboard-sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-truck-fast"></i>
+                <h1>Carrier Portal</h1>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" onclick="switchView('available')">
+                    <i class="fas fa-box-open"></i>
+                    <span>Available Shipments</span>
+                </a>
+                <a href="#" class="nav-item" onclick="switchView('accepted')">
+                    <i class="fas fa-truck-loading"></i>
+                    <span>My Shipments</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-route"></i>
+                    <span>Route Planning</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="userEmail">Loading...</span>
+                </div>
+                <button onclick="logout()" class="btn-logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="dashboard-main">
+            <header class="dashboard-header">
+                <div class="header-content">
+                    <h2 id="viewTitle">Available Shipments</h2>
+                </div>
+                <div class="header-actions">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search shipments..." id="searchShipments">
+                    </div>
+                    <div class="filter-box">
+                        <select id="filterStatus">
+                            <option value="all">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="in-transit">In Transit</option>
+                            <option value="delivered">Delivered</option>
+                        </select>
+                    </div>
+                </div>
+            </header>
+
+            <div class="dashboard-content">
+                <!-- Available Shipments View -->
+                <div id="availableShipments" class="shipment-grid">
+                    <!-- Shipments will be loaded here -->
+                </div>
+
+                <!-- Accepted Shipments View -->
+                <div id="acceptedShipments" class="shipment-grid" style="display: none;">
+                    <div id="acceptedShipmentCards">
+                        <!-- Accepted shipments will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Shipment Details Modal -->
+    <div id="shipmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Shipment Details</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Shipment details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary close-modal">Close</button>
+                <button class="btn-primary" id="actionButton">Accept Shipment</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { auth } from './firebase-config.js';
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        // Check authentication before showing content
+        const dashboardContent = document.getElementById('dashboard-content');
+        const loadingElement = document.getElementById('loading');
+
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                // No user is signed in, redirect to login
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Check if user is a carrier
+            const userData = JSON.parse(localStorage.getItem('user') || '{}');
+            if (userData.role !== 'carrier') {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Show dashboard content
+            loadingElement.style.display = 'none';
+            dashboardContent.style.display = 'block';
+        });
+    </script>
+    <script type="module" src="carrier-dashboard.js"></script>
+</body>
+</html>

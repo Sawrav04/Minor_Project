@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Logistics System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="auth-page">
+    <div class="split-container">
+        <!-- Left Side Banner -->
+        <div class="banner-side">
+            <div class="banner-content">
+                <i class="fas fa-truck-fast banner-icon"></i>
+                <h1>Welcome to Logistics System</h1>
+                <p>Streamline your shipping operations with our comprehensive logistics management platform.</p>
+                <div class="features">
+                    <div class="feature-item">
+                        <i class="fas fa-route"></i>
+                        <div>
+                            <h3>Real-time Tracking</h3>
+                            <p>Track your shipments in real-time with detailed status updates.</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-handshake"></i>
+                        <div>
+                            <h3>Carrier Network</h3>
+                            <p>Connect with reliable carriers for efficient deliveries.</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-chart-line"></i>
+                        <div>
+                            <h3>Analytics Dashboard</h3>
+                            <p>Get insights into your logistics operations.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side Authentication -->
+        <div class="auth-side">
+            <div class="auth-container">
+                <div class="auth-box">
+                    <div class="auth-header">
+                        <h1>Welcome Back</h1>
+                        <p class="auth-subtitle">Please enter your details to continue.</p>
+                    </div>
+                    
+                    <div class="auth-tabs">
+                        <button class="auth-tab active" data-tab="login">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </button>
+                        <button class="auth-tab" data-tab="signup">
+                            <i class="fas fa-user-plus"></i> Sign Up
+                        </button>
+                    </div>
+
+                    <div id="error-message" class="error-message"></div>
+
+                    <form id="loginForm" class="auth-form">
+                        <div class="form-group">
+                            <label for="email">
+                                <i class="fas fa-envelope"></i> Email
+                            </label>
+                            <input type="email" id="email" name="email" placeholder="Enter your email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="password">
+                                <i class="fas fa-lock"></i> Password
+                            </label>
+                            <div class="password-input">
+                                <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                                <button type="button" class="toggle-password" tabindex="-1">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="padding-left: 130px;">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </button>
+                    </form>
+
+                    <form id="signupForm" class="auth-form" style="display: none;">
+                        <div class="form-group">
+                            <label for="signupEmail">
+                                <i class="fas fa-envelope"></i> Email
+                            </label>
+                            <input type="email" id="signupEmail" name="email" placeholder="Enter your email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="signupPassword">
+                                <i class="fas fa-lock"></i> Password
+                            </label>
+                            <div class="password-input">
+                                <input type="password" id="signupPassword" name="password" placeholder="Create a password" required>
+                                <button type="button" class="toggle-password" tabindex="-1">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="role">
+                                <i class="fas fa-user-tag"></i> Role
+                            </label>
+                            <select id="role" name="role" required>
+                                <option value="" disabled selected>Select your role</option>
+                                <option value="carrier">Carrier</option>
+                                <option value="shipper">Shipper</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-user-plus"></i> Create Account
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <!-- Firebase Auth -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <!-- Firebase Firestore -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Your Firebase configuration and custom scripts -->
+    <script type="module" src="firebase-config.js"></script>
+    <script type="module" src="auth.js"></script>
+
+    <script>
+        // Tab switching functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            const loginForm = document.getElementById('loginForm');
+            const signupForm = document.getElementById('signupForm');
+            const authTabs = document.querySelectorAll('.auth-tab');
+
+            authTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Remove active class from all tabs
+                    authTabs.forEach(t => t.classList.remove('active'));
+                    // Add active class to clicked tab
+                    tab.classList.add('active');
+
+                    // Show/hide forms based on selected tab
+                    const tabName = tab.getAttribute('data-tab');
+                    if (tabName === 'login') {
+                        loginForm.style.display = 'block';
+                        signupForm.style.display = 'none';
+                    } else {
+                        loginForm.style.display = 'none';
+                        signupForm.style.display = 'block';
+                    }
+
+                    // Clear error message
+                    const errorMessage = document.getElementById('error-message');
+                    if (errorMessage) {
+                        errorMessage.style.display = 'none';
+                        errorMessage.textContent = '';
+                    }
+                });
+            });
+        });
+
+        // Toggle password visibility
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.toggle-password').forEach(button => {
+                button.addEventListener('click', e => {
+                    const input = e.target.closest('.password-input').querySelector('input');
+                    const icon = e.target.closest('.toggle-password').querySelector('i');
+                    
+                    if (input.type === 'password') {
+                        input.type = 'text';
+                        icon.classList.remove('fa-eye');
+                        icon.classList.add('fa-eye-slash');
+                    } else {
+                        input.type = 'password';
+                        icon.classList.remove('fa-eye-slash');
+                        icon.classList.add('fa-eye');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
