@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shipper Dashboard - Logistics System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <!-- QR Code Library -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+</head>
+<body class="dashboard-body">
+    <div id="loading" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p>Loading...</p>
+    </div>
+
+    <div id="dashboard-content" class="dashboard-wrapper" style="display: none;">
+        <!-- Sidebar -->
+        <aside class="dashboard-sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-box"></i>
+                <h1>Shipper Portal</h1>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" onclick="switchTab('myShipments')">
+                    <i class="fas fa-boxes"></i>
+                    <span>My Shipments</span>
+                </a>
+                <a href="#" class="nav-item" onclick="switchTab('createShipment')">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>Create Shipment</span>
+                </a>
+                <a href="#" class="nav-item" onclick="switchTab('shipmentHistory')">
+                    <i class="fas fa-history"></i>
+                    <span>Shipment History</span>
+                </a>    
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="userEmail">Loading...</span>
+                </div>
+                <button onclick="logout()" class="btn-logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="dashboard-main">
+            <header class="dashboard-header">
+                <div class="header-content">
+                    <h2>My Shipments</h2>
+                    <p id="shipmentCount" class="shipment-count">Loading shipments...</p>
+                </div>
+                <div class="header-actions">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search shipments..." id="searchShipments">
+                    </div>
+                    <button class="btn-primary" onclick="showCreateShipment()">
+                        <i class="fas fa-plus"></i>
+                        Create New Shipment
+                    </button>
+                </div>
+            </header>
+
+            <div class="dashboard-content">
+                <!-- Shipments List -->
+                <div id="shipmentsList" class="shipment-grid">
+                    <!-- Shipments will be loaded here -->
+                </div>
+
+                <!-- Create Shipment Form -->
+                <div id="createShipmentForm" class="form-container" style="display: none;">
+                    <form id="newShipmentForm" onsubmit="handleCreateShipment(event)">
+                        <div class="form-group">
+                            <label for="pickupAddress">Pickup Location</label>
+                            <input type="text" id="pickupAddress" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="dropoffAddress">Delivery Location</label>
+                            <input type="text" id="dropoffAddress" class="form-control" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="receiverName">Receiver Name</label>
+                                <input type="text" id="receiverName" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="receiverContact">Receiver Contact</label>
+                                <input type="tel" id="receiverContact" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="packageType">Package Type</label>
+                                <select id="packageType" class="form-control" required>
+                                    <option value="">Select type</option>
+                                    <option value="standard">Standard</option>
+                                    <option value="fragile">Fragile</option>
+                                    <option value="perishable">Perishable</option>
+                                    <option value="hazardous">Hazardous</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="weight">Weight (kg)</label>
+                                <input type="number" id="weight" class="form-control" min="0" step="0.1" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="packageDetails">Package Details</label>
+                            <textarea id="packageDetails" class="form-control" rows="3" required></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary" onclick="switchTab('myShipments')">Cancel</button>
+                            <button type="submit" class="btn-primary">Create Shipment</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Shipment Details Modal -->
+    <div id="shipmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Shipment Details</h3>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Shipment details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal()">Close</button>
+                <div id="modalActions">
+                    <!-- Action buttons will be added here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div id="qrCodeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Shipment QR Code</h3>
+                <button class="close-modal" onclick="closeQRModal()">&times;</button>
+            </div>
+            <div class="modal-body text-center">
+                <div id="qrcode" class="qr-code-container"></div>
+                <p class="mt-3">Scan this QR code to view shipment details</p>
+                <p id="shipmentIdDisplay" class="shipment-id-display"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeQRModal()">Close</button>
+                <button class="btn-primary" onclick="downloadQRCode()">
+                    <i class="fas fa-download"></i> Download
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cancellation Request Modal -->
+    <div id="cancellationModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Request Shipment Cancellation</h3>
+                <button class="close-modal" onclick="closeCancellationModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="cancellationReason">Reason for Cancellation</label>
+                    <textarea id="cancellationReason" class="form-control" rows="3" required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeCancellationModal()">Close</button>
+                <button class="btn-danger" onclick="submitCancellationRequest()">
+                    <i class="fas fa-ban"></i> Request Cancellation
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="shipper-dashboard.js"></script>
+    <script>
+        // Add global error handler
+        window.addEventListener('error', function(event) {
+            console.error('Global error caught:', event.error);
+            const loadingElement = document.getElementById('loading');
+            if (loadingElement) {
+                loadingElement.innerHTML = `
+                    <div class="error-message">
+                        <p>An error occurred: ${event.error?.message || 'Unknown error'}</p>
+                        <button onclick="window.location.href='login.html'">Return to Login</button>
+                    </div>
+                `;
+            }
+        });
+        
+        // Export functions for HTML access
+        window.closeModal = function() {
+            const modal = document.getElementById('shipmentModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        };
+
+        window.closeQRModal = function() {
+            const modal = document.getElementById('qrCodeModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        };
+
+        window.closeCancellationModal = function() {
+            const modal = document.getElementById('cancellationModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        };
+
+        window.downloadQRCode = function() {
+            const canvas = document.querySelector('#qrcode canvas');
+            if (canvas) {
+                const link = document.createElement('a');
+                link.download = 'shipment-qr-code.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }
+        };
+    </script>
+</body>
+</html>

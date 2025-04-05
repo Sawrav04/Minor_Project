@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carrier Dashboard - Logistics System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <!-- QR Code Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    
+    <!-- Firebase SDK - Load these first -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script>
+        // Initialize Firebase with compat version
+        const firebaseConfig = {
+            apiKey: "AIzaSyCUKEtEsj0ZyFhX-UIpum2lwUn9DySDKSo",
+            authDomain: "logistic-system-64c05.firebaseapp.com",
+            projectId: "logistic-system-64c05",
+            storageBucket: "logistic-system-64c05.appspot.com",
+            messagingSenderId: "785335550935",
+            appId: "1:785335550935:web:c3edacab784f314add8192"
+        };
+        
+        // Initialize Firebase
+        try {
+            firebase.initializeApp(firebaseConfig);
+            console.log("Firebase initialized successfully in HTML");
+        } catch (error) {
+            console.error("Firebase initialization error:", error);
+            // Error will be handled by the error UI in the loading element
+        }
+    </script>
+</head>
+<body class="dashboard-body">
+    <div id="loading" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p>Loading...</p>
+    </div>
+
+    <div id="dashboard-content" class="dashboard-wrapper" style="display: none;">
+        <!-- Sidebar -->
+        <aside class="dashboard-sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-truck"></i>
+                <h1>Carrier Portal</h1>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" onclick="switchView('myShipments')">
+                    <i class="fas fa-boxes"></i>
+                    <span>My Shipments</span>
+                </a>
+                <a href="#" class="nav-item" onclick="switchView('availableShipments')">
+                    <i class="fas fa-list"></i>
+                    <span>Available Shipments</span>
+                </a>
+                <a href="#" class="nav-item" onclick="switchView('scanQR')">
+                    <i class="fas fa-qrcode"></i>
+                    <span>Scan QR Code</span>
+                </a>
+                <a href="#" class="nav-item" onclick="switchView('shipmentHistory')">
+                    <i class="fas fa-history"></i>
+                    <span>Shipment History</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="userEmail">Loading...</span>
+                </div>
+                <button onclick="logout()" class="btn-logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="dashboard-main">
+            <header class="dashboard-header">
+                <div class="header-content">
+                    <h2 id="pageTitle">My Shipments</h2>
+                    <p id="shipmentCount" class="shipment-count">Loading shipments...</p>
+                </div>
+                <div class="header-actions">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search shipments..." id="searchShipments">
+                    </div>
+                </div>
+            </header>
+
+            <div class="dashboard-content">
+                <!-- My Shipments Tab -->
+                <div id="myShipmentsTab" class="tab-content">
+                    <div id="myShipmentsList" class="shipment-grid">
+                        <!-- Shipments will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Available Shipments Tab -->
+                <div id="availableShipmentsTab" class="tab-content" style="display: none;">
+                    <div id="availableShipmentsList" class="shipment-grid">
+                        <!-- Available shipments will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Scan QR Code Tab -->
+                <div id="scanQRTab" class="tab-content" style="display: none;">
+                    <div class="qr-scanner-container">
+                        <div class="scanner-instructions">
+                            <h3>Scan Shipment QR Code</h3>
+                            <p>Position the QR code within the scanner area to update shipment status or view details.</p>
+                        </div>
+                        <div id="qrScanner" class="qr-scanner"></div>
+                        <div class="scanner-controls">
+                            <button id="startScanButton" class="btn-primary">
+                                <i class="fas fa-play"></i> Start Scanner
+                            </button>
+                            <button id="stopScanButton" class="btn-secondary" style="display: none;">
+                                <i class="fas fa-stop"></i> Stop Scanner
+                            </button>
+                        </div>
+                        <div id="scanResult" class="scan-result" style="display: none;">
+                            <div class="result-header">
+                                <h4>Scan Result</h4>
+                                <button class="btn-close" onclick="clearScanResult()">×</button>
+                            </div>
+                            <div id="scanResultContent" class="result-content"></div>
+                            <div id="scanResultActions" class="result-actions"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shipment History Tab -->
+                <div id="shipmentHistoryTab" class="tab-content" style="display: none;">
+                    <div id="shipmentHistoryList" class="shipment-grid">
+                        <!-- Shipment history will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Shipment Details Modal -->
+    <div id="shipmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Shipment Details</h3>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Shipment details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal()">Close</button>
+                <div id="modalActions">
+                    <!-- Action buttons will be added here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Update Status Modal -->
+    <div id="updateStatusModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Update Shipment Status</h3>
+                <button class="close-modal" onclick="closeUpdateStatusModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="statusSelect">New Status</label>
+                    <select id="statusSelect" class="form-control">
+                        <option value="in-transit">In Transit</option>
+                        <option value="delivered">Delivered</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="statusNotes">Notes (Optional)</label>
+                    <textarea id="statusNotes" class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeUpdateStatusModal()">Cancel</button>
+                <button class="btn-primary" onclick="submitStatusUpdate()">
+                    <i class="fas fa-check"></i> Update Status
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Component -->
+    <div id="alert-container" class="alert-container"></div>
+
+    <!-- JavaScript -->
+    <script>
+        // Add global error handler
+        window.addEventListener('error', function(event) {
+            console.error('Global error caught:', event.error);
+            const loadingElement = document.getElementById('loading');
+            if (loadingElement) {
+                loadingElement.innerHTML = `
+                    <div class="error-message">
+                        <p>An error occurred: ${event.error?.message || 'Unknown error'}</p>
+                        <button onclick="window.location.href='login.html'">Return to Login</button>
+                    </div>
+                `;
+            }
+        });
+        
+        // Export functions for HTML access
+        window.closeModal = function() {
+            const modal = document.getElementById('shipmentModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        };
+
+        window.closeUpdateStatusModal = function() {
+            const modal = document.getElementById('updateStatusModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        };
+
+        window.clearScanResult = function() {
+            const scanResult = document.getElementById('scanResult');
+            if (scanResult) {
+                scanResult.style.display = 'none';
+            }
+            const scanResultContent = document.getElementById('scanResultContent');
+            if (scanResultContent) {
+                scanResultContent.innerHTML = '';
+            }
+            const scanResultActions = document.getElementById('scanResultActions');
+            if (scanResultActions) {
+                scanResultActions.innerHTML = '';
+            }
+        };
+        
+        // Ensure logout is available globally
+        window.logout = function() {
+            console.log('Global logout function called');
+            // Show loading indicator
+            const loadingElement = document.getElementById('loading');
+            if (loadingElement) {
+                loadingElement.style.display = 'flex';
+                loadingElement.innerHTML = `
+                    <div class="loading-spinner"></div>
+                    <p>Logging out...</p>
+                `;
+            }
+            
+            try {
+                // Clear local storage first
+                localStorage.removeItem('user');
+                
+                // Try to use Firebase auth if available
+                if (firebase && firebase.auth) {
+                    firebase.auth().signOut()
+                        .then(() => {
+                            console.log('User signed out successfully');
+                            window.location.href = 'login.html';
+                        })
+                        .catch((error) => {
+                            console.error('Error signing out:', error);
+                            // Still redirect to login page
+                            window.location.href = 'login.html';
+                        });
+                } else {
+                    // If Firebase auth is not available, just redirect
+                    console.log('Firebase auth not available, redirecting to login');
+                    window.location.href = 'login.html';
+                }
+            } catch (error) {
+                console.error('Exception during logout:', error);
+                // Force redirect to login page as a fallback
+                window.location.href = 'login.html';
+            }
+        };
+    </script>
+    
+    <!-- Load carrier dashboard script after Firebase is initialized -->
+    <script src="./carrier-dashboard.js"></script>
+</body>
+</html>
