@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logistics System</title>
+</head>
+<body>
+    <script type="module">
+        import { auth } from './firebase-config.js';
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        // Check if user is logged in
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // Get user role from localStorage
+                const userData = JSON.parse(localStorage.getItem('user') || '{}');
+                switch(userData.role) {
+                    case 'carrier':
+                        window.location.href = 'carrier-dashboard.html';
+                        break;
+                    case 'shipper':
+                        window.location.href = 'shipper-dashboard.html';
+                        break;
+                    case 'manager':
+                        window.location.href = 'logistic-manager-dashboard.html';
+                        break;
+                    default:
+                        window.location.href = 'login.html';
+                }
+            } else {
+                // No user is signed in, redirect to login
+                window.location.href = 'login.html';
+            }
+        });
+    </script>
+    <p>Loading...</p>
+</body>
+</html>

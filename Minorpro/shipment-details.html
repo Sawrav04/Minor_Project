@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shipment Details - Logistics System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .shipment-details-container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 30px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .shipment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .shipment-id {
+            font-size: 1.2rem;
+            color: #666;
+        }
+        
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .status-pending {
+            background-color: #fff8e6;
+            color: #ffa000;
+        }
+        
+        .status-assigned {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .status-in-transit {
+            background-color: #e8f5e9;
+            color: #388e3c;
+        }
+        
+        .status-delivered {
+            background-color: #e8f5e9;
+            color: #388e3c;
+        }
+        
+        .status-cancelled {
+            background-color: #ffebee;
+            color: #d32f2f;
+        }
+        
+        .detail-section {
+            margin-bottom: 25px;
+        }
+        
+        .detail-section h3 {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .detail-row {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        
+        .detail-label {
+            width: 150px;
+            font-weight: 500;
+            color: #666;
+        }
+        
+        .detail-value {
+            flex: 1;
+            color: #333;
+        }
+        
+        .tracking-timeline {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .timeline-item {
+            display: flex;
+            margin-bottom: 15px;
+            position: relative;
+        }
+        
+        .timeline-item:before {
+            content: '';
+            position: absolute;
+            left: 7px;
+            top: 30px;
+            bottom: -15px;
+            width: 2px;
+            background-color: #e0e0e0;
+        }
+        
+        .timeline-item:last-child:before {
+            display: none;
+        }
+        
+        .timeline-icon {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: #4caf50;
+            margin-right: 15px;
+            margin-top: 5px;
+        }
+        
+        .timeline-content {
+            flex: 1;
+        }
+        
+        .timeline-date {
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 3px;
+        }
+        
+        .timeline-text {
+            font-weight: 500;
+        }
+        
+        .back-button {
+            margin-top: 30px;
+            text-align: center;
+        }
+        
+        .btn-back {
+            background-color: #f5f5f5;
+            color: #333;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-back:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 300px;
+        }
+        
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid #3498db;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-container {
+            text-align: center;
+            padding: 40px;
+            color: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+    <div class="shipment-details-container" id="shipmentContainer">
+        <div class="loading-container" id="loadingContainer">
+            <div class="loading-spinner"></div>
+            <p>Loading shipment details...</p>
+        </div>
+        
+        <div id="shipmentContent" style="display: none;">
+            <!-- Shipment content will be loaded here -->
+        </div>
+        
+        <div id="errorContainer" class="error-container" style="display: none;">
+            <h3>Error</h3>
+            <p id="errorMessage">Unable to load shipment details.</p>
+        </div>
+        
+        <div class="back-button">
+            <button class="btn-back" onclick="goBack()">
+                <i class="fas fa-arrow-left"></i> Back
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db } from './firebase-config.js';
+        import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        
+        // Get shipment ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const shipmentId = urlParams.get('id');
+        
+        // Elements
+        const loadingContainer = document.getElementById('loadingContainer');
+        const shipmentContent = document.getElementById('shipmentContent');
+        const errorContainer = document.getElementById('errorContainer');
+        const errorMessage = document.getElementById('errorMessage');
+        
+        // Load shipment details
+        async function loadShipmentDetails() {
+            if (!shipmentId) {
+                showError('No shipment ID provided');
+                return;
+            }
+            
+            try {
+                const shipmentRef = doc(db, 'shipments', shipmentId);
+                const shipmentDoc = await getDoc(shipmentRef);
+                
+                if (shipmentDoc.exists()) {
+                    const shipment = { id: shipmentDoc.id, ...shipmentDoc.data() };
+                    displayShipmentDetails(shipment);
+                } else {
+                    showError('Shipment not found');
+                }
+            } catch (error) {
+                console.error('Error loading shipment:', error);
+                showError('Failed to load shipment details');
+            }
+        }
+        
+        // Display shipment details
+        function displayShipmentDetails(shipment) {
+            // Format dates
+            const createdAt = shipment.createdAt ? new Date(shipment.createdAt).toLocaleString() : 'Unknown';
+            const updatedAt = shipment.updatedAt ? new Date(shipment.updatedAt).toLocaleString() : 'N/A';
+            
+            // Get carrier information
+            const carrierInfo = shipment.carrierId ? 
+                `<div class="detail-section">
+                    <h3>Carrier Information</h3>
+                    <div class="detail-row">
+                        <div class="detail-label">Email</div>
+                        <div class="detail-value">${shipment.carrierEmail || 'Not available'}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Assigned</div>
+                        <div class="detail-value">${shipment.assignedAt ? new Date(shipment.assignedAt).toLocaleString() : 'Unknown'}</div>
+                    </div>
+                </div>` : 
+                `<div class="detail-section">
+                    <h3>Carrier Information</h3>
+                    <div class="detail-row">
+                        <div class="detail-label">Status</div>
+                        <div class="detail-value">No carrier assigned yet</div>
+                    </div>
+                </div>`;
+            
+            // Create HTML for shipment details
+            shipmentContent.innerHTML = `
+                <div class="shipment-header">
+                    <div>
+                        <h2>Shipment Details</h2>
+                        <div class="shipment-id">ID: ${shipment.id}</div>
+                    </div>
+                    <div class="status-badge status-${shipment.status}">${shipment.status}</div>
+                </div>
+                
+                <div class="detail-section">
+                    <h3>Shipment Information</h3>
+                    <div class="detail-row">
+                        <div class="detail-label">Created</div>
+                        <div class="detail-value">${createdAt}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Last Updated</div>
+                        <div class="detail-value">${updatedAt}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Shipper</div>
+                        <div class="detail-value">${shipment.shipperEmail || 'N/A'}</div>
+                    </div>
+                </div>
+                
+                ${carrierInfo}
+                
+                <div class="detail-section">
+                    <h3>Package Information</h3>
+                    <div class="detail-row">
+                        <div class="detail-label">Type</div>
+                        <div class="detail-value">${shipment.packageType || 'Standard'}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Weight</div>
+                        <div class="detail-value">${shipment.weight || 'N/A'} kg</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Details</div>
+                        <div class="detail-value">${shipment.packageDetails || 'N/A'}</div>
+                    </div>
+                </div>
+                
+                <div class="detail-section">
+                    <h3>Delivery Information</h3>
+                    <div class="detail-row">
+                        <div class="detail-label">Pickup</div>
+                        <div class="detail-value">${shipment.pickupAddress || 'N/A'}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Delivery</div>
+                        <div class="detail-value">${shipment.dropoffAddress || 'N/A'}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Receiver</div>
+                        <div class="detail-value">${shipment.receiverName || 'N/A'}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Contact</div>
+                        <div class="detail-value">${shipment.receiverContact || 'N/A'}</div>
+                    </div>
+                </div>
+                
+                <div class="tracking-timeline">
+                    <h3>Tracking Timeline</h3>
+                    <div class="timeline-item">
+                        <div class="timeline-icon"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-date">${createdAt}</div>
+                            <div class="timeline-text">Shipment created</div>
+                        </div>
+                    </div>
+                    ${shipment.assignedAt ? `
+                    <div class="timeline-item">
+                        <div class="timeline-icon"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-date">${new Date(shipment.assignedAt).toLocaleString()}</div>
+                            <div class="timeline-text">Carrier assigned</div>
+                        </div>
+                    </div>
+                    ` : ''}
+                    ${shipment.inTransitAt ? `
+                    <div class="timeline-item">
+                        <div class="timeline-icon"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-date">${new Date(shipment.inTransitAt).toLocaleString()}</div>
+                            <div class="timeline-text">Shipment in transit</div>
+                        </div>
+                    </div>
+                    ` : ''}
+                    ${shipment.deliveredAt ? `
+                    <div class="timeline-item">
+                        <div class="timeline-icon"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-date">${new Date(shipment.deliveredAt).toLocaleString()}</div>
+                            <div class="timeline-text">Shipment delivered</div>
+                        </div>
+                    </div>
+                    ` : ''}
+                    ${shipment.cancelledAt ? `
+                    <div class="timeline-item">
+                        <div class="timeline-icon"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-date">${new Date(shipment.cancelledAt).toLocaleString()}</div>
+                            <div class="timeline-text">Shipment cancelled</div>
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            // Show content
+            loadingContainer.style.display = 'none';
+            shipmentContent.style.display = 'block';
+        }
+        
+        // Show error
+        function showError(message) {
+            loadingContainer.style.display = 'none';
+            errorContainer.style.display = 'block';
+            errorMessage.textContent = message;
+        }
+        
+        // Go back function
+        window.goBack = function() {
+            window.history.back();
+        };
+        
+        // Load shipment details on page load
+        document.addEventListener('DOMContentLoaded', loadShipmentDetails);
+    </script>
+</body>
+</html>
